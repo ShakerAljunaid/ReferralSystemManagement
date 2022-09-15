@@ -1,0 +1,14 @@
+.main-panel{
+
+}
+body{background:#fff !important;}
+.pendingChildrenCases .fixed-table-body{overflow-y:unset ;overflow-x:unset }
+
+.child-data .fixed-table-body{height:auto;}
+div.amcharts-main-div > div.amcharts-chart-div > a {
+    display: none !important;
+}
+.checkSpan{padding-right: 39px;}
+.table-fit {
+    width: 1px;
+}

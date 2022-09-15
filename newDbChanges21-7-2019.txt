@@ -1,0 +1,83 @@
+*Funcs getAnalysisCreatedDate,getIomAnalysisCreatedDate,getIomAnalysisCreatedDate.
+*new_child_case_service prc
+*change_diagnose_state prc
+*Chidcase tbl add Diagnose_closed column
+*reopen_diagnose_state prc
+*ApproveClose prc
+*closedCaseView view
+*closedcase tbl add many columns
+*edit_closedcase prc edit
+*ReopenClosedCase prc
+
+*Alter
+VIEW childgridviewdata
+AS
+SELECT
+  c.ID AS childId,
+  c.Age,
+  case when c.Displaced=0 then 'مستقر' else 'نازح' end as DisplacedState,
+  CONCAT(cp.First_name, ' ', c.Middel_name, ' ', cp.Last_name) AS ChildFullName,
+  (CASE WHEN (cp.Gender = 1) THEN 'ذكر' ELSE 'انثى' END) AS Gender,
+  CONCAT(rp.First_name, ' ', rp.Last_name) AS CareGiverFullName,
+  rp.Phone_no AS CareGiverPhoneNo,
+  CONCAT(gvr.Title, '-', dst.Title, '-', c.Address) AS ChildAddress,
+  cc.ID AS caseId,
+  (CASE WHEN ((c.Mother_alive = 1) AND
+      (c.Father_alive = 1)) THEN 'الوالدين احياء' WHEN ((c.Mother_alive = 1) AND
+      (c.Father_alive = 0)) THEN 'يتيم الأب' WHEN ((c.Mother_alive = 0) AND
+      (c.Father_alive = 1)) THEN 'يتيم الأم' ELSE 'يتيم الأب والأم' END) AS ParentState,
+  cc.Specialist_id AS Specialist_id,
+  cc.diagnonist_id AS diagnonist_id,
+  cc.Diagonse_state AS Diagonse_state,
+  cc.Iom_analysis_state AS Iom_analysis_state,
+  cc.Iom_analyst_id AS Iom_analyst_id,
+  c.Child_source AS Child_source,
+  cc.Created_date AS Created_date,
+   case when  getAnalysisCreatedDate(cc.ID) is null then `cc`.`Created_date` else  getAnalysisCreatedDate(cc.ID) end as AnalysisDate,
+   case when  getDiagonisticAnalysisCreatedDate(cc.ID) is null then `cc`.`Created_date` else  getDiagonisticAnalysisCreatedDate(cc.ID) end as DiagnoseDate,
+   case when  getIomAnalysisCreatedDate(cc.ID) is null then `cc`.`Created_date` else  getIomAnalysisCreatedDate(cc.ID) end as IomAnalysisDate
+   ,cc.Diagnose_closed
+FROM person cp 
+  JOIN child c
+    ON c.Person_id = cp.ID
+  JOIN caregiver cg
+    ON c.Care_giver_id = cg.ID
+  JOIN person rp
+    ON rp.ID = cg.Person_id
+  JOIN childcase cc
+    ON cc.Child_id = c.ID
+  JOIN manylist gvr
+    ON gvr.ID = c.Living_governate
+    AND gvr.List_type_id = 1
+  JOIN manylist dst
+    ON dst.ID = c.Living_district
+    AND dst.List_type_id = 2
+
+  where cc.Case_final_decision_id!=431 ; ;
+  
+  *Alter
+
+VIEW children_with_timed_service
+AS
+SELECT
+  `cc`.`Child_id` AS `Child_id`,
+  CONCAT(`p`.`First_name`, ' ', `c`.`Middel_name`, ' ', `p`.`Last_name`) AS `FullName`,
+  (CASE WHEN (`p`.`Gender` = 1) THEN 'ذكر' ELSE 'انثى' END) AS `Gender`,
+   (CASE WHEN (`c`.`Displaced` = 0) THEN 'مستقر' ELSE 'نازح' END) AS `DisplacedState`, 
+  `s`.`Title` AS `Title`,
+  `cs`.`Start_date` AS `Start_date`,
+  `s`.`ID` AS `ServiceId`,
+  `cs`.`ID` AS `CaseServiceId`,
+  `cs`.`Service_giver_id` AS `Service_giver_id`,
+  `s`.`Service_cat` AS `Service_cat`,
+  `cc`.`ID` AS `Case_id`
+FROM ((((`caseservice` `cs`
+  JOIN `childcase` `cc`
+    ON ((`cc`.`ID` = `cs`.`Case_id`)))
+  JOIN `child` `c`
+    ON ((`c`.`ID` = `cc`.`Child_id`)))
+  JOIN `person` `p`
+    ON ((`p`.`ID` = `c`.`Person_id`)))
+  JOIN `service` `s`
+    ON ((`s`.`ID` = `cs`.`Service_id`)))
+WHERE (`s`.`Service_cat` = 381);
